@@ -2,7 +2,7 @@ FROM nvidia/cuda:11.6.0-devel-ubuntu20.04
 ENV DEBIAN_FRONTEND=nointeractive
 ENV TZ=America/Los_Angeles
 RUN apt update && apt install openssh-server sudo x11-utils -y
-RUN apt install build-essential gnuplot gdb rsync git -y
+RUN apt install build-essential gdb rsync git -y
 
 RUN git clone https://github.com/Kitware/CMake.git
 RUN apt install libssl-dev -y
