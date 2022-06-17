@@ -5,7 +5,7 @@ RUN apt update && apt install openssh-server sudo x11-utils -y
 RUN apt install build-essential gdb rsync git -y
 
 RUN git clone https://github.com/Kitware/CMake.git
-RUN apt install libssl-dev -y
+RUN apt install libssl-dev ninja-build -y
 RUN cd CMake && git checkout tags/v3.22.5 && ./bootstrap && make -j && make install && cd .. && rm -rf CMake 
 
 RUN echo 'root:cugal' | chpasswd
