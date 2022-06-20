@@ -36,3 +36,6 @@ Now you can ssh normally without X11 forwarding and it should work.
 
 ### What next?
 Once connected try installing and running ``glxgears``! You can install extra packages as well when starting your container by chaining commands before the start script. Happy programming!
+
+## DockerHub
+The image is hosted on [DockerHub](https://hub.docker.com/repository/docker/jackm97/cuda-x11-docker)
