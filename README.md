@@ -16,7 +16,7 @@ docker run --rm -d --gpus all -p 2222:22 jackm97/cuda-x11-docker:latest bash sta
 # then connect via ssh
 ssh -X root@localhost -p 2222
 ```
-The password is ``cugal``. It may also be helpful to add the following to your ``~/.ssh/config`` file on the host(e.g. not the container) to automatically enable X11 forwarding for ssh. This is useful when using IDEs that support remote development.
+The password is ``naga_is_awesome``. It may also be helpful to add the following to your ``~/.ssh/config`` file on the host(e.g. not the container) to automatically enable X11 forwarding for ssh. This is useful when using IDEs that support remote development.
 ```
 ForwardAgent yes 
 ForwardX11 yes
