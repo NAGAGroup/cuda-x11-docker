@@ -1,4 +1,13 @@
-FROM nvidia/cuda:12.0.1-devel-rockylinux9
+FROM nvidia/cuda:12.2.0-devel-rockylinux9
+
+# nvidia-container-runtime
+ENV NVIDIA_VISIBLE_DEVICES \
+        ${NVIDIA_VISIBLE_DEVICES:-all}
+ENV NVIDIA_DRIVER_CAPABILITIES \
+        ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics,utility
+
+# libglvnd
+COPY 10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
 
 # Setup SSH
 RUN dnf install -y openssh-server rsync
