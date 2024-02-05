@@ -57,12 +57,21 @@ RUN curl -L -O "https://github.com/Kitware/CMake/releases/download/v3.28.2/cmake
 RUN sudo sh cmake-3.28.2-linux-x86_64.sh --prefix=/usr/local/ --exclude-subdir
 RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
 RUN bash Miniforge3-$(uname)-$(uname -m).sh -b -p /home/$USERNAME/conda
-RUN source "${HOME}/conda/etc/profile.d/conda.sh"; source "${HOME}/conda/etc/profile.d/mamba.sh"; conda activate && conda init; mamba install cppcheck doxygen texlive-core ghostscript cmake-format npx prettier codespell pip ninja -y
+RUN source "${HOME}/conda/etc/profile.d/conda.sh"; source "${HOME}/conda/etc/profile.d/mamba.sh"; conda activate && conda init; mamba install cppcheck doxygen texlive-core ghostscript cmake-format npx prettier codespell pip ninja conan -y
 RUN source "${HOME}/conda/etc/profile.d/conda.sh"; source "${HOME}/conda/etc/profile.d/mamba.sh"; conda activate && conda env export --no-builds | grep -v "^prefix: " > environment.yml
 RUN sudo mkdir /etc/conda
 RUN sudo cp environment.yml /etc/conda
 
+# Install bottom, a nice TUI process manager
+RUN sudo dnf copr enable atim/bottom -y
+RUN sudo dnf install bottom -y
+
+# Install fish shell
+RUN sudo dnf install fish -y
+
 ENV CUDA_X11_DOCKER ""
+
+WORKDIR /home/$USERNAME
 
 EXPOSE 2222
 CMD sudo /sbin/sshd -D -p 2222
