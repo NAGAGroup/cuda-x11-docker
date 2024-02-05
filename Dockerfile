@@ -1,29 +1,34 @@
-FROM nvidia/cuda:12.2.0-devel-rockylinux9
+FROM nvcr.io/nvidia/cuda:12.3.1-devel-rockylinux9
 
 # nvidia-container-runtime
-ENV NVIDIA_VISIBLE_DEVICES \
-        ${NVIDIA_VISIBLE_DEVICES:-all}
 ENV NVIDIA_DRIVER_CAPABILITIES \
         ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics,utility
 
+
 # libglvnd
 COPY 10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
+RUN dnf install -y libglvnd-egl libglvnd-glx libglvnd-opengl libglvnd-gles libglvnd
+
+# nvidia cuda drivers for nvidia-smi functionality
+RUN dnf install -y nvidia-driver-cuda
 
 # Setup SSH
 RUN dnf install -y openssh-server rsync
 RUN ssh-keygen -A
-RUN echo "X11Forwarding yes" >> /etc/ssh/sshd_config
 
-# Setup X11 
-RUN dnf install xorg-x11-xauth xorg-x11-fonts-* xorg-x11-utils -y
-RUN dnf install mesa-dri-drivers -y
+# Get access to more packages
+RUN dnf install -y epel-release
+RUN crb enable
 
-# Setup Dev Tools
-RUN dnf install gdb cmake -y
-RUN dnf install epel-release -y
-RUN dnf install 'dnf-command(config-manager)'
-RUN dnf config-manager --set-enabled crb
-RUN dnf install @"Development Tools" -y
+# Use i3 as wm for remote graphical access
+RUN dnf install -y i3
+
+# TurboVNC + VirtualGL remote graphical access
+RUN dnf install -y wget
+RUN wget "https://sourceforge.net/projects/virtualgl/files/3.1/VirtualGL-3.1.x86_64.rpm/download"  -O /tmp/VirtualGL-3.1.x86_64.rpm
+RUN dnf install /tmp/VirtualGL-3.1.x86_64.rpm -y
+RUN wget "https://sourceforge.net/projects/turbovnc/files/3.0.3/turbovnc-3.0.3.x86_64.rpm/download" -O /tmp/turbovnc-3.0.3.x86_64.rpm
+RUN dnf install /tmp/turbovnc-3.0.3.x86_64.rpm -y
 
 # Setup User
 ARG USERNAME=gpu-dev
@@ -39,9 +44,25 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 RUN chpasswd gpu-dev <<< "gpu-dev:naga_is_awesome"
-RUN echo "export TERM=xterm-256color" >> /home/gpu-dev/.bashrc
 
+# Extras that I have found useful for base image
+RUN sudo dnf install -y kitty-terminfo git dnf-plugins-core
 
 USER $USERNAME
+
+# Dev tools
+RUN sudo dnf install @"Development Tools" -y
+WORKDIR /tmp
+RUN curl -L -O "https://github.com/Kitware/CMake/releases/download/v3.28.2/cmake-3.28.2-linux-x86_64.sh"
+RUN sudo sh cmake-3.28.2-linux-x86_64.sh --prefix=/usr/local/ --exclude-subdir
+RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+RUN bash Miniforge3-$(uname)-$(uname -m).sh -b -p /home/$USERNAME/conda
+RUN source "${HOME}/conda/etc/profile.d/conda.sh"; source "${HOME}/conda/etc/profile.d/mamba.sh"; conda activate && conda init; mamba install cppcheck doxygen texlive-core ghostscript cmake-format npx prettier codespell pip ninja -y
+RUN source "${HOME}/conda/etc/profile.d/conda.sh"; source "${HOME}/conda/etc/profile.d/mamba.sh"; conda activate && conda env export --no-builds | grep -v "^prefix: " > environment.yml
+RUN sudo mkdir /etc/conda
+RUN sudo cp environment.yml /etc/conda
+
+ENV CUDA_X11_DOCKER ""
+
 EXPOSE 2222
 CMD sudo /sbin/sshd -D -p 2222
