@@ -73,5 +73,6 @@ ENV CUDA_X11_DOCKER ""
 
 WORKDIR /home/$USERNAME
 
+ # Source setup_env.sh in entrypoint
+ENTRYPOINT ["/bin/bash", "-c", "bash -c \"sudo /sbin/sshd -D -p 2222&\" && /bin/bash", "-c"]
 EXPOSE 2222
-CMD sudo /sbin/sshd -D -p 2222
