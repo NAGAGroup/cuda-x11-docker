@@ -50,32 +50,22 @@ RUN sudo dnf install -y kitty-terminfo git dnf-plugins-core
 
 USER $USERNAME
 
-# Dev tools
-RUN sudo dnf install @"Development Tools" -y
-RUN sudo dnf install gcc-toolset-12 -y 
-WORKDIR /tmp
-RUN curl -L -O "https://github.com/Kitware/CMake/releases/download/v3.28.2/cmake-3.28.2-linux-x86_64.sh"
-RUN sudo sh cmake-3.28.2-linux-x86_64.sh --prefix=/usr/local/ --exclude-subdir
-RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
-RUN bash Miniforge3-$(uname)-$(uname -m).sh -b -p /home/$USERNAME/conda
-RUN source "${HOME}/conda/etc/profile.d/conda.sh"; source "${HOME}/conda/etc/profile.d/mamba.sh"; conda activate && conda init bash
-RUN bash --login -c "mamba install cppcheck doxygen texlive-core ghostscript cmake-format npx prettier codespell pip ninja neovim nvim -y"
-RUN bash --login -c "conda env export --no-builds | grep -v \"^prefix: \" > environment.yml"
-RUN sudo mkdir /etc/conda
-RUN sudo cp environment.yml /etc/conda
+WORKDIR /home/$USERNAME
 
 # Install bottom, a nice TUI process manager
 RUN sudo dnf copr enable atim/bottom -y
 RUN sudo dnf install bottom -y
 
-# Install fish shell
-RUN sudo dnf install fish -y
+RUN bash --login -c "curl -fsSL https://pixi.sh/install.sh | bash"
+RUN echo "export PATH=/home/$USERNAME/.pixi/bin:\$PATH" >> /home/$USERNAME/.bashrc
+
+# Dev tools
+RUN mkdir -p /home/$USERNAME/.local/share/devenv
+COPY pixi.toml /home/$USERNAME/.local/share/devenv/pixi.toml
+RUN source /home/$USERNAME/.bashrc # && pixi install --manifest-path /home/$USERNAME/.local/share/devenv/pixi.toml
+RUN echo "eval \"\$(pixi shell-hook --manifest-path /home/$USERNAME/.local/share/devenv/pixi.toml)\"" >> /home/$USERNAME/.bashrc
 
 ENV CUDA_X11_DOCKER ""
-
-WORKDIR /home/$USERNAME
-
-RUN echo "source /opt/rh/gcc-toolset-12/enable" >> /home/$USERNAME/.bashrc
 
  # Source setup_env.sh in entrypoint
 ENTRYPOINT ["/bin/bash", "-c", "bash -c \"sudo /sbin/sshd -D -p 2222&\" && /bin/bash", "--login", "-c"]
