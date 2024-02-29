@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/cuda:12.3.1-devel-rockylinux9
+FROM nvcr.io/nvidia/cuda:12.3.1-base-rockylinux9
 
 # nvidia-container-runtime
 ENV NVIDIA_DRIVER_CAPABILITIES \
@@ -8,9 +8,6 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 # libglvnd
 COPY 10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
 RUN dnf install -y libglvnd-egl libglvnd-glx libglvnd-opengl libglvnd-gles libglvnd
-
-# nvidia cuda drivers for nvidia-smi functionality
-RUN dnf install -y nvidia-driver-cuda
 
 # Setup SSH
 RUN dnf install -y openssh-server rsync
@@ -56,17 +53,24 @@ WORKDIR /home/$USERNAME
 RUN sudo dnf copr enable atim/bottom -y
 RUN sudo dnf install bottom -y
 
-RUN bash --login -c "curl -fsSL https://pixi.sh/install.sh | bash"
-RUN echo "export PATH=/home/$USERNAME/.pixi/bin:\$PATH" >> /home/$USERNAME/.bashrc
+# Build and install pixi from source, hopefully fixes issue with cargo panic
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y -q
+RUN echo "source \$HOME/.cargo/env" >> /home/$USERNAME/.bashrc
+RUN sudo dnf install openssl-devel gcc-toolset-12 -y
+RUN source /opt/rh/gcc-toolset-12/enable && bash --login -c "cargo install --locked --git https://github.com/prefix-dev/pixi.git"
 
 # Dev tools
 RUN mkdir -p /home/$USERNAME/.local/share/devenv
 COPY pixi.toml /home/$USERNAME/.local/share/devenv/pixi.toml
-RUN source /home/$USERNAME/.bashrc # && pixi install --manifest-path /home/$USERNAME/.local/share/devenv/pixi.toml
+RUN sudo chown -R gpu-dev:gpu-dev /home/$USERNAME/.local/share/devenv/
+# RUN bash --login -c "pixi install --manifest-path /home/$USERNAME/.local/share/devenv/pixi.toml"
 RUN echo "eval \"\$(pixi shell-hook --manifest-path /home/$USERNAME/.local/share/devenv/pixi.toml)\"" >> /home/$USERNAME/.bashrc
+
+# nvidia cuda drivers for nvidia-smi functionality
+# RUN sudo dnf install -y nvidia-driver-cuda
 
 ENV CUDA_X11_DOCKER ""
 
  # Source setup_env.sh in entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "bash -c \"sudo /sbin/sshd -D -p 2222&\" && /bin/bash", "--login", "-c"]
+ENTRYPOINT ["/bin/bash", "-c", "bash -c \"sudo /sbin/sshd -D -p 2222&\"; /bin/bash", "-c"]
 EXPOSE 2222
